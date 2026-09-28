@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Controle de Ponto & Biometria</title>
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="navbar">
+    <div class="brand">
+      <i data-lucide="clock"></i>
+      <span>PontoBio</span>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-btn active" data-target="kiosk-view">
+        <i data-lucide="camera"></i>
+        <span>Kiosk de Registro</span>
+      </button>
+      <button class="nav-btn" data-target="ausencias-view">
+        <i data-lucide="calendar-off"></i>
+        <span>Solicitar Ausência</span>
+      </button>
+      <button class="nav-btn" data-target="rh-view">
+        <i data-lucide="shield-alert"></i>
+        <span>Painel do RH</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="app-container">
+
+    <!-- ========================================================
+         VIEW 1: KIOSK DE REGISTRO DE PONTO (Módulo 1 e 2)
+         ======================================================== -->
+    <section id="kiosk-view" class="view-section active">
+      <div class="kiosk-grid">
+        <!-- Coluna da Câmera / Biometria -->
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="camera"></i>
+            <span>Validação Biométrica Facial</span>
+          </div>
+
+          <div class="camera-container">
+            <video id="webcam-video" class="camera-video" autoplay playsinline muted></video>
+            <canvas id="webcam-canvas" class="camera-canvas"></canvas>
+            <div class="camera-overlay-frame"></div>
+            <div id="camera-status" class="camera-status-badge">
+              <span class="camera-status-dot"></span>
+              <span id="camera-status-text">Inicializando Câmera...</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            <button id="btn-toggle-camera" class="btn btn-secondary btn-block">
+              <i data-lucide="refresh-cw"></i> Reiniciar Câmera
+            </button>
+          </div>
+        </div>
+
+        <!-- Coluna do Formulário de Registro -->
+        <div class="card">
+          <div class="kiosk-clock-card">
+            <div id="clock-time" class="clock-time">08:00:00</div>
+            <div id="clock-date" class="clock-date">Carregando data...</div>
+          </div>
+
+          <form id="ponto-form" onsubmit="return false;">
+            <div class="form-group">
+              <label class="form-label" for="funcionario-identificador">Matrícula ou CPF</label>
+              <input type="text" id="funcionario-identificador" class="form-control" placeholder="Ex: 1001 ou 123.456.789-00" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Tipo de Registro</label>
+              <div class="btn-group-type">
+                <button type="button" id="btn-tipo-entrada" class="btn-type selected-entrada" data-tipo="ENTRADA">
+                  <i data-lucide="log-in"></i> ENTRADA
+                </button>
+                <button type="button" id="btn-tipo-saida" class="btn-type" data-tipo="SAIDA">
+                  <i data-lucide="log-out"></i> SAÍDA
+                </button>
+              </div>
+            </div>
+
+            <div id="kiosk-alert" class="alert alert-info" style="display: none;">
+              <i data-lucide="info"></i>
+              <span id="kiosk-alert-message">Posicione seu rosto em frente à câmera e clique em "Registrar Ponto".</span>
+            </div>
+
+            <button type="button" id="btn-registrar-ponto" class="btn btn-primary btn-block btn-lg">
+              <i data-lucide="check-circle-2"></i> Capturar & Registrar Ponto
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         VIEW 2: SOLICITAÇÃO DE AUSÊNCIAS E ABONOS (Módulo 3)
+         ======================================================== -->
+    <section id="ausencias-view" class="view-section">
+      <div class="card" style="max-width: 650px; margin: 0 auto;">
+        <div class="card-title">
+          <i data-lucide="calendar-plus"></i>
+          <span>Solicitação de Ausência / Abono</span>
+        </div>
+
+        <form id="ausencia-form">
+          <div class="form-group">
+            <label class="form-label" for="ausencia-identificador">Sua Matrícula ou CPF</label>
+            <input type="text" id="ausencia-identificador" class="form-control" placeholder="Ex: 1001 ou 123.456.789-00" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ausencia-tipo">Tipo de Ausência</label>
+            <select id="ausencia-tipo" class="form-control" required>
+              <option value="FALTA_PLANEJADA">Falta Planejada (Mínimo 3 dias de antecedência)</option>
+              <option value="ATESTADO">Atestado / Licença Médica</option>
+              <option value="FALTA_INJUSTIFICADA">Solicitação de Abono de Falta</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ausencia-data">Data da Ausência</label>
+            <input type="date" id="ausencia-data" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ausencia-observacao">Observações / Motivo</label>
+            <textarea id="ausencia-observacao" class="form-control" rows="3" placeholder="Descreva os detalhes da solicitação..."></textarea>
+          </div>
+
+          <div id="ausencia-alert" class="alert" style="display: none;"></div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            <i data-lucide="send"></i> Enviar Solicitação
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         VIEW 3: PAINEL DO RH (Gestão, Auditoria e Relatórios)
+         ======================================================== -->
+    <section id="rh-view" class="view-section">
+      <!-- Indicadores Rápidos do RH -->
+      <div class="rh-summary-grid">
+        <div class="stat-card">
+          <div class="stat-icon primary"><i data-lucide="users"></i></div>
+          <div class="stat-info">
+            <div id="stat-total-func" class="stat-value">0</div>
+            <div class="stat-label">Funcionários Ativos</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon success"><i data-lucide="clock"></i></div>
+          <div class="stat-info">
+            <div id="stat-registros-hoje" class="stat-value">0</div>
+            <div class="stat-label">Registros Hoje</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon warning"><i data-lucide="alert-triangle"></i></div>
+          <div class="stat-info">
+            <div id="stat-ausencias-pendentes" class="stat-value">0</div>
+            <div class="stat-label">Abonos Pendentes</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon danger"><i data-lucide="shield-alert"></i></div>
+          <div class="stat-info">
+            <div id="stat-logs-fraude" class="stat-value">0</div>
+            <div class="stat-label">Alertas de Fraude</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navegação Interna do Painel RH -->
+      <div class="subtabs">
+        <button class="subtab-btn active" data-subtarget="subtab-funcionarios">
+          <i data-lucide="user-check"></i> Funcionários
+        </button>
+        <button class="subtab-btn" data-subtarget="subtab-registros">
+          <i data-lucide="list"></i> Registros de Ponto
+        </button>
+        <button class="subtab-btn" data-subtarget="subtab-abonos">
+          <i data-lucide="check-square"></i> Gestão de Abonos
+        </button>
+        <button class="subtab-btn" data-subtarget="subtab-fraudes">
+          <i data-lucide="shield-alert"></i> Auditoria de Fraudes
+        </button>
+      </div>
+
+      <!-- Subtab: Cadastrar / Gerenciar Funcionários -->
+      <div id="subtab-funcionarios" class="subtab-content active">
+        <div class="kiosk-grid">
+          <div class="card">
+            <div class="card-title">
+              <i data-lucide="user-plus"></i> Cadastrar / Editar Funcionário
+            </div>
+            <form id="form-funcionario">
+              <input type="hidden" id="func-id">
+              <div class="form-group">
+                <label class="form-label" for="func-nome">Nome Completo</label>
+                <input type="text" id="func-nome" class="form-control" required placeholder="Ex: Carlos Silva">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="func-cpf">CPF</label>
+                <input type="text" id="func-cpf" class="form-control" required placeholder="000.000.000-00">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="func-matricula">Matrícula</label>
+                <input type="text" id="func-matricula" class="form-control" required placeholder="Ex: 1001">
+              </div>
+              <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <div>
+                  <label class="form-label" for="func-entrada">Entrada Prevista</label>
+                  <input type="time" id="func-entrada" class="form-control" value="08:00" required>
+                </div>
+                <div>
+                  <label class="form-label" for="func-saida">Saída Prevista</label>
+                  <input type="time" id="func-saida" class="form-control" value="17:00" required>
+                </div>
+              </div>
+
+              <!-- Captura Biométrica Facial para Cadastro -->
+              <div class="form-group">
+                <label class="form-label">Biometria Facial (Vetor Biométrico)</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button type="button" id="btn-capturar-biometria-cad" class="btn btn-secondary">
+                    <i data-lucide="camera"></i> Capturar da WebCam
+                  </button>
+                  <span id="biometria-status-cad" class="badge badge-normal" style="display:none;">Capturada</span>
+                </div>
+                <input type="hidden" id="func-vetor-biometrico">
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block">
+                <i data-lucide="save"></i> Salvar Funcionário
+              </button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <i data-lucide="users"></i> Lista de Funcionários
+            </div>
+            <div class="table-responsive">
+              <table class="table" id="tabela-funcionarios">
+                <thead>
+                  <tr>
+                    <th>Matrícula</th>
+                    <th>Nome</th>
+                    <th>Jornada</th>
+                    <th>Biometria</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="lista-funcionarios-body">
+                  <!-- Inserido dinamicamente via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtab: Registros de Ponto -->
+      <div id="subtab-registros" class="subtab-content">
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="file-text"></i> Histórico Geral de Registros de Ponto
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data / Hora</th>
+                  <th>Funcionário</th>
+                  <th>Tipo</th>
+                  <th>Status Jornada</th>
+                  <th>Saldo Dia</th>
+                  <th>Biometria</th>
+                  <th>Justificativa</th>
+                </tr>
+              </thead>
+              <tbody id="lista-registros-body">
+                <!-- Inserido dinamicamente via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtab: Gestão de Abonos -->
+      <div id="subtab-abonos" class="subtab-content">
+        <div class="card">
+          <div class="card-title">
+            <i data-lucide="calendar-check"></i> Solicitações de Ausência e Abono
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data Solicitação</th>
+                  <th>Funcionário</th>
+                  <th>Data Ausência</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th>Observação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="lista-abonos-body">
+                <!-- Inserido dinamicamente via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtab: Auditoria de Fraudes -->
+      <div id="subtab-fraudes" class="subtab-content">
+        <div class="card">
+          <div class="card-title" style="color: var(--danger);">
+            <i data-lucide="shield-alert"></i> Logs de Tentativa de Fraude / Falha Biométrica
+          </div>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data / Hora</th>
+                  <th>Funcionário Suspeito</th>
+                  <th>Detalhes da Tentativa</th>
+                  <th>Foto Capturada</th>
+                </tr>
+              </thead>
+              <tbody id="lista-fraudes-body">
+                <!-- Inserido dinamicamente via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================
+       MODAIS E COMPONENTES DIÁLOGO
+       ======================================================== -->
+
+  <!-- Modal 1: Justificativa de Saída Antecipada (Módulo 2) -->
+  <div id="modal-justificativa" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--warning);">
+          <i data-lucide="alert-triangle"></i> Saída Antecipada Identificada
+        </h3>
+        <button class="modal-close" data-dismiss="modal">&times;</button>
+      </div>
+      <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+        Você está registrando a saída antes do horário previsto. O preenchimento da <strong>justificativa é obrigatório</strong>.
+      </p>
+      <form id="form-justificativa">
+        <div class="form-group">
+          <label class="form-label" for="justificativa-texto">Motivo da Saída Antecipada</label>
+          <textarea id="justificativa-texto" class="form-control" rows="3" required placeholder="Digite a justificativa..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Confirmar e Registrar Saída</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Comprovante Digital de Ponto (Módulo 1) -->
+  <div id="modal-comprovante" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--success);">
+          <i data-lucide="check-circle"></i> Comprovante de Registro
+        </h3>
+        <button class="modal-close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <div class="receipt-card">
+        <div class="receipt-header">
+          <h4>COMPROVANTE DE PONTO ELETRÔNICO</h4>
+          <p>Sistema PontoBio - Em conformidade legal</p>
+        </div>
+        <div class="receipt-body">
+          <div class="receipt-row">
+            <span class="receipt-label">Funcionário:</span>
+            <span id="rec-nome" class="receipt-value">-</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-label">Matrícula / CPF:</span>
+            <span id="rec-matricula" class="receipt-value">-</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-label">Tipo de Marcação:</span>
+            <span id="rec-tipo" class="receipt-value">-</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-label">Data e Hora:</span>
+            <span id="rec-data-hora" class="receipt-value">-</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-label">Status da Jornada:</span>
+            <span id="rec-status" class="receipt-value">-</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-label">Autenticação Biométrica:</span>
+            <span id="rec-biometria" class="receipt-value">Sim (Facial)</span>
+          </div>
+          <div class="receipt-hash">
+            HASH DE AUTENTICIDADE:<br>
+            <span id="rec-hash">0x0000000000000000</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-fechar-comprovante" class="btn btn-secondary btn-block">Concluir</button>
+    </div>
+  </div>
+
+  <!-- App Scripts (Sem dependência de CDNs externas bloqueadas) -->
+  <script src="js/supabase-config.js"></script>
+  <script src="js/biometrics.js"></script>
+  <script src="js/ponto.js"></script>
+  <script src="js/ausencias.js"></script>
+  <script src="js/rh.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
